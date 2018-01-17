@@ -1,119 +1,292 @@
-# XMRig
-XMRig is high performance Monero (XMR) CPU miner, with the official full Windows support.
-Originally based on cpuminer-multi with heavy optimizations/rewrites and removing a lot of legacy code, since version 1.0.0 complete rewritten from scratch on C++.
+## CoinHive Stratum Proxy
 
-* This is the **CPU-mining** version, there is also a [NVIDIA GPU version](https://github.com/xmrig/xmrig-nvidia) and [AMD GPU version]( https://github.com/xmrig/xmrig-amd).
-* [Roadmap](https://github.com/xmrig/xmrig/issues/106) for next releases.
+![coin-hive-stratum](https://user-images.githubusercontent.com/2781777/33243231-c162d55c-d2c0-11e7-9408-c3fb7fb699d0.png)
 
-<img src="http://i.imgur.com/OKZRVDh.png" width="619" >
+This proxy allows you to use CoinHive's JavaScript miner on a custom stratum pool.
 
-#### Table of contents
-* [Features](#features)
-* [Download](#download)
-* [Usage](#usage)
-* [Algorithm variations](#algorithm-variations)
-* [Build](https://github.com/xmrig/xmrig/wiki/Build)
-* [Common Issues](#common-issues)
-* [Other information](#other-information)
-* [Donations](#donations)
-* [Contacts](#contacts)
+You can mine cryptocurrencies [Monero (XMR)](https://getmonero.org/) and [Electroneum (ETN)](http://electroneum.com/).
 
-## Features
-* High performance.
-* Official Windows support.
-* Small Windows executable, without dependencies.
-* x86/x64 support.
-* Support for backup (failover) mining server.
-* keepalived support.
-* Command line options compatible with cpuminer.
-* CryptoNight-Lite support for AEON.
-* Smart automatic [CPU configuration](https://github.com/xmrig/xmrig/wiki/Threads).
-* Nicehash support
-* It's open source software.
+This package was inspired by x25's
+[coinhive-stratum-mining-proxy](https://github.com/x25/coinhive-stratum-mining-proxy).
 
-## Download
-* Binary releases: https://github.com/xmrig/xmrig/releases
-* Git tree: https://github.com/xmrig/xmrig.git
-  * Clone with `git clone https://github.com/xmrig/xmrig.git` :hammer: [Build instructions](https://github.com/xmrig/xmrig/wiki/Build).
+## Guide
+
+* Deploy this proxy to DigitalOcean (free promo codes!) and run it on your own domain.
+  [Learn More](https://gitlab.com/cazala/coin-hive-stratum/wikis/Deploy-for-free)
+
+## Installation
+
+```
+npm install -g coin-hive-stratum
+```
 
 ## Usage
-### Basic example
-```
-xmrig.exe -o pool.monero.hashvault.pro:5555 -u YOUR_WALLET -p x -k
-```
 
-### Failover
-```
-xmrig.exe -o pool.monero.hashvault.pro:5555 -u YOUR_WALLET1 -p x -k -o pool.supportxmr.com:5555 -u YOUR_WALLET2 -p x -k
-```
-For failover you can add multiple pools, maximum count not limited.
+You just need to launch a proxy pointing to the desired pool:
 
-### Options
 ```
-  -a, --algo=ALGO       cryptonight (default) or cryptonight-lite
-  -o, --url=URL         URL of mining server
-  -O, --userpass=U:P    username:password pair for mining server
-  -u, --user=USERNAME   username for mining server
-  -p, --pass=PASSWORD   password for mining server
-  -t, --threads=N       number of miner threads
-  -v, --av=N            algorithm variation, 0 auto select
-  -k, --keepalive       send keepalived for prevent timeout (need pool support)
-  -r, --retries=N       number of times to retry before switch to backup server (default: 5)
-  -R, --retry-pause=N   time to pause between retries (default: 5)
-      --cpu-affinity    set process affinity to CPU core(s), mask 0x3 for cores 0 and 1
-      --cpu-priority    set process priority (0 idle, 2 normal to 5 highest)
-      --no-huge-pages   disable huge pages support
-      --no-color        disable colored output
-      --donate-level=N  donate level, default 5% (5 minutes in 100 minutes)
-      --user-agent      set custom user-agent string for pool
-  -B, --background      run the miner in the background
-  -c, --config=FILE     load a JSON-format configuration file
-  -l, --log-file=FILE   log all output to a file
-      --max-cpu-usage=N maximum CPU usage for automatic threads mode (default 75)
-      --safe            safe adjust threads and av settings for current CPU
-      --nicehash        enable nicehash support
-      --print-time=N    print hashrate report every N seconds
-  -h, --help            display this help and exit
-  -V, --version         output version information and exit
+coin-hive-stratum 8892 --host=pool.supportxmr.com --port=3333
 ```
 
-Also you can use configuration via config file, default **config.json**. You can load multiple config files and combine it with command line options.
+And then just point your CoinHive miner to the proxy:
 
-## Algorithm variations
-Since version 0.8.0.
-* `--av=1` For CPUs with hardware AES.
-* `--av=2` Lower power mode (double hash) of `1`.
-* `--av=3` Software AES implementation.
-* `--av=4` Lower power mode (double hash) of `3`.
+```html
+<script src="https://coinhive.com/lib/coinhive.min.js"></script>
+<script>
+  // Configure CoinHive to point to your proxy
+  CoinHive.CONFIG.WEBSOCKET_SHARDS = [["ws://localhost:8892"]];
 
-## Common Issues
-### HUGE PAGES unavailable
-* Run XMRig as Administrator.
-* Since version 0.8.0 XMRig automatically enable SeLockMemoryPrivilege for current user, but reboot or sign out still required. [Manual instruction](https://msdn.microsoft.com/en-gb/library/ms190730.aspx).
+  // Start miner
+  var miner = CoinHive.Anonymous('your-monero-address');
+  miner.start();
 
-## Other information
-* No HTTP support, only stratum protocol support.
-* No TLS support.
-* Default donation 5% (5 minutes in 100 minutes) can be reduced to 1% via command line option `--donate-level`.
+</script>
+```
 
+Now your CoinHive miner would be mining on `supportXMR.com` pool, using your monero address. This will work for any pool
+based on the [Stratum Mining Protocol](https://en.bitcoin.it/wiki/Stratum_mining_protocol). You can even set up
+[your own](https://github.com/zone117x/node-stratum-pool).
 
-### CPU mining performance
-* **Intel i7-7700** - 307 H/s (4 threads)
-* **AMD Ryzen 7 1700X** - 560 H/s (8 threads)
+## Stats
 
-Please note performance is highly dependent on system load. The numbers above are obtained on an idle system. Tasks heavily using a processor cache, such as video playback, can greatly degrade hashrate. Optimal number of threads depends on the size of the L3 cache of a processor, 1 thread requires 2 MB of cache.
+The proxy provides a few endpoints to see your stats:
 
-### Maximum performance checklist
-* Idle operating system.
-* Do not exceed optimal thread count.
-* Use modern CPUs with AES-NI instructuon set.
-* Try setup optimal cpu affinity.
-* Enable fast memory (Large/Huge pages).
+* `/stats`: shows the number of miners and connections
 
-## Donations
-* XMR: `48edfHu7V9Z84YzzMa6fUueoELZ9ZRXq9VetWzYGzKt52XU5xvqgzYnDK9URnRoJMk1j8nLwEVsaSWJ4fhdUyZijBGUicoD`
-* BTC: `1P7ujsXeX7GxQwHNnJsRMgAdNkFZmNVqJT`
+* `/miners`: list of all miners, showing id, login and hashes for each one.
 
-## Contacts
-* support@xmrig.com
-* [reddit](https://www.reddit.com/user/XMRig/)
+* `/connections`: list of connections, showing id, host, port and amount of miners for each one.
+
+Example: http://localhost:8892/stats
+
+If you want to protect these endpoints (recommended) use the `credentials: { user, pass }` option in the proxy
+constructor or the `--credentials=username:password` flag for the CLI.
+
+To get more advanced metrcis you will have to
+run the proxy with PM2
+
+## CLI
+
+```
+Usage: 'coin-hive-stratum <port>'
+
+<port>: The port where the server will listen to
+
+Options:
+
+  --host                        The pool's host.
+  --port                        The pool's port.
+  --pass                        The pool's password, by default it's "x".
+  --ssl                         Use SSL/TLS to connect to the pool.
+  --address                     A fixed wallet address for all the miners.
+  --user                        A fixed user for all the miners.
+  --diff                        A fixed difficulty for all the miner. This is not supported by all the pools.
+  --dynamic-pool                If true, the pool can be set dynamically by sending a ?pool=host:port:pass query param to the websocket endpoint.
+  --max-miners-per-connection   Set the max amount of miners per TCP connection. When this number is exceded, a new socket is created. By default it's 100.
+  --path                        Accept connections on a specific path.
+  --key                         Path to private key file. Used for HTTPS/WSS.
+  --cert                        Path to certificate file. Used for HTTPS/WSS.
+  --credentials                 Credentials to access the /stats, /miners and /connections endponts. (usage: --credentials=username:password)
+```
+
+## API
+
+* `createProxy`: Creates a `proxy` server. It may take an `options` object with the following optional properties:
+
+  * `host`: the pool's host.
+
+  * `port`: the pool's port.
+
+  * `pass`: the pool's password, default is `"x"`.
+
+  * `ssl`: use SSL/TLS to connect to the pool.
+
+  * `address`: a fixed wallet address for all the miners.
+
+  * `user`: a fixed user for all the miners.
+
+  * `diff`: a fixed difficulty for all the miners.
+
+  * `dynamicPool`: if true, the pool can be set dynamically by sending a `?pool=host:port:pass` query param to the
+    websocket endpoint.
+
+  * `maxMinersPerConnection`: max amount of miners per TCP connection, when this number is exceded, a new socket is
+    created. Default it's `100`.
+
+  * `path`: accept connections on a specific path (ie: '/proxy').
+
+  * `server`: use a custom http/https server.
+
+  * `key`: path to private key file (used for https/wss).
+
+  * `cert`: path to certificate file (used for https/wss).
+
+  * `credentials`: specify credentials for the API endpoints (`/stats`, `/miners`, `/connections`). If credentials are
+    provided, you will need to use [Basic Auth](https://developer.mozilla.org/en-US/docs/Web/HTTP/Authentication) to
+    access the endpoints.
+
+    * `user`: a username for the API endpoints
+
+    * `pass`: a password for the API endpoints.
+
+* `proxy.listen(port [, host])`: launches the server listening on the specified port (and optionally a host).
+
+* `proxy.on(event, callback)`: specify a callback for an event, each event has information about the miner who triggered
+  it. The types are:
+
+  * `open`: a new connection was open from a miner (ie. the miner connected to the proxy).
+
+  * `authed`: a miner has been authenticated on the pool.
+
+  * `close`: a connection from a miner was closed (ie. the miner disconnected from the proxy).
+
+  * `error`: an error ocurred.
+
+  * `job`: a new mining job was received from the pool.
+
+  * `found`: a hash meeting the pool's difficulty was found and will be sent to the pool.
+
+  * `accepted`: a hash that was sent to the pool was accepted.
+
+## Health Check
+
+The proxy provides a few endpoints to do some health checks:
+
+* `/ping`: always responds with a `200`.
+
+* `/ready`: responds with a `200` if the proxy is up, bound and running. Otherwise returns a `503`.
+
+* `/version`: responds with the version of the proxy in json format, ie: `{ version: "2.x.x" }`.
+
+Example: http://localhost:8892/version
+
+## FAQ
+
+#### Can I use this programmatically?
+
+Yes, like this:
+
+```js
+const Proxy = require("coin-hive-stratum");
+const proxy = new Proxy({
+  host: "pool.supportxmr.com",
+  port: 3333
+});
+proxy.listen(8892);
+```
+
+#### Can I use several workers?
+
+Yes, just create a `CoinHive.User` and the username will be used as the stratum worker name:
+
+```html
+<script src="https://coinhive.com/lib/coinhive.min.js"></script>
+<script>
+  // Configure CoinHive to point to your proxy
+  CoinHive.CONFIG.WEBSOCKET_SHARDS = [["ws://localhost:8892"]];
+
+  // Start miner
+  var miner = CoinHive.User('your-monero-address', 'my-worker');
+  miner.start();
+
+</script>
+```
+
+#### Can I run this on Docker?
+
+Yes, use a `Dockerfile` like this:
+
+```
+FROM node:8-slim
+
+# Install coin-hive-stratum
+RUN npm i -g coin-hive-stratum --unsafe-perm=true --allow-root
+
+# Run coin-hive-stratum
+ENTRYPOINT ["coin-hive-stratum"]
+```
+
+Now build the image:
+
+```
+$ docker build -t coin-hive-stratum .
+```
+
+And run the image:
+
+```
+$ docker run --rm -t -p 8892:8892 coin-hive-stratum 8892 --host=pool.supportxmr.com --port=3333
+```
+
+#### How can I make my proxy work with wss://?
+
+You will need to pass a private key file and a certificate file to your proxy:
+
+```js
+const Proxy = require("coin-hive-stratum");
+const proxy = new Proxy({
+  host: "pool.supportxmr.com",
+  port: 3333,
+  key: require("fs").readFileSync("key.pem"),
+  cert: require("fs").readFileSync("cert.pem")
+});
+proxy.listen(8892);
+```
+
+Now you can connect to your proxy using `wss://` and hit the stats and health check endpoints (ie, `/stats`) though `https://`.
+
+To generate your SSL certificates for your domain or subdomain you can use [Certbot](https://certbot.eff.org/).
+
+Certbot will generate the SSL certificates under these paths (where `example.com` is your domain):
+
+* **key**: `/etc/letsencrypt/live/example.com/privkey.pem`
+* **cert**: `/etc/letsencrypt/live/example.com/fullchain.pem`
+
+So you can use them like this:
+
+```js
+const Proxy = require("coin-hive-stratum");
+const proxy = new Proxy({
+  host: "pool.supportxmr.com",
+  port: 3333,
+  key: require("fs").readFileSync("/etc/letsencrypt/live/example.com/privkey.pem"),
+  cert: require("fs").readFileSync("/etc/letsencrypt/live/example.com/fullchain.pem")
+});
+proxy.listen(8892);
+```
+
+#### How can I store the logs?
+
+You have to run the proxy using PM2 and pass a
+`--log=path/to/log.txt` argument when you start the proxy.
+
+#### How can I see the metrics?
+
+You can hit `/stats` to get some basic stats (number of miners and connections).
+
+To full metrics you have to run the proxy using PM2.
+
+#### How can I avoid AdBlock?
+
+You can deploy the proxy to DigitalOcean and Netlify using
+[this guide](https://gitlab.com/cazala/coin-hive-stratum/wikis/Deploy-for-free) and Avoid AdBlock
+
+If you use those assets, the `CoinHive` global variable will be accessible as `CH`.
+
+## Disclaimer
+
+This project is not endorsed by or affiliated with `coinhive.com` in any way.
+
+## Support
+
+This project is configured with a 1% donation. If you wish to disable it, please consider doing a one time donation and
+buy me a beer with [magic internet money](https://i.imgur.com/mScSiOo.jpg):
+
+```
+BTC: 16ePagGBbHfm2d6esjMXcUBTNgqpnLWNeK
+ETH: 0xa423bfe9db2dc125dd3b56f215e09658491cc556
+LTC: LeeemeZj6YL6pkTTtEGHFD6idDxHBF2HXa
+XMR: 46WNbmwXpYxiBpkbHjAgjC65cyzAxtaaBQjcGpAZquhBKw2r8NtPQniEgMJcwFMCZzSBrEJtmPsTR54MoGBDbjTi2W1XmgM
+```
+
+<3
